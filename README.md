@@ -1,6 +1,6 @@
-# Assignment2
+#ExperimentalRoboticsAssignment2
 
-In the second assignment of the Experimental Robotics Laboratory course, you are requested to integrate the architecture developed in the first assignment with a robotic simulation.
+The Repository consists of packages required for the Assignment 2 of Experimental Robotics labarotary course.ths assignment is the continuation of the first assignment of this course which will be available in this link [https://github.com/Aathee1103/ExperimentalRobotics-Assignment1-](#real-cool-heading) 
 
 To start, you are provided with this package, which contains:
 - the definition of a custom message and a custom service
