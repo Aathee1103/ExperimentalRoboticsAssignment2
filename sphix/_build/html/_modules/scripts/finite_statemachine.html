@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scripts.finite_statemachine &mdash; ExpRob Assignment2 1.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> ExpRob Assignment2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ExpRob Assignment2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scripts.finite_statemachine</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scripts.finite_statemachine</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">..module::finite_statemachine</span>
+<span class="sd"> :synopsis: Finite sttae machine of the overall sysem</span>
+<span class="sd">..moduleauthor:: Aatheethyaa Dhanasekaran</span>
+<span class="sd"> :details: ROS node for implementing the Finite State Machine.</span>
+<span class="sd"> :service: </span>
+<span class="sd">  sm_introspection Created and start the introspection server for visualizing the finite state machine.</span>
+<span class="sd"> </span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">smach</span>
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">smach_ros</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">smach</span> <span class="kn">import</span> <span class="n">StateMachine</span><span class="p">,</span><span class="n">State</span>
+<span class="c1">##from helper import InterfaceHelper</span>
+<span class="c1">##from query_helper import OntologyHelper</span>
+<span class="c1">##from load_environment import LoadOntologyMap</span>
+<span class="kn">from</span> <span class="nn">assignment_1.msg</span> <span class="kn">import</span> <span class="n">Point</span><span class="p">,</span> <span class="n">ControlGoal</span><span class="p">,</span> <span class="n">PlanGoal</span>
+<span class="kn">from</span> <span class="nn">armor_api.armor_client</span> <span class="kn">import</span> <span class="n">ArmorClient</span>
+<span class="kn">from</span> <span class="nn">Assignment_1</span> <span class="kn">import</span> <span class="n">architecture_name_mapper</span> <span class="k">as</span> <span class="n">anm</span>
+<span class="kn">from</span> <span class="nn">move_base_msgs.msg</span> <span class="kn">import</span> <span class="n">MoveBaseActionGoal</span><span class="p">,</span> <span class="n">MoveBaseAction</span><span class="p">,</span> <span class="n">MoveBaseGoal</span>
+<span class="kn">from</span> <span class="nn">actionlib_msgs.msg</span> <span class="kn">import</span> <span class="n">GoalID</span>
+<span class="kn">from</span> <span class="nn">actionlib_msgs.msg</span> <span class="kn">import</span> <span class="n">GoalStatus</span>
+<span class="kn">from</span> <span class="nn">geometry_msgs.msg</span> <span class="kn">import</span> <span class="n">Twist</span>
+<span class="kn">from</span> <span class="nn">nav_msgs.msg</span> <span class="kn">import</span> <span class="n">Odometry</span>
+<span class="kn">from</span> <span class="nn">move_base_msgs.msg</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">geometry_msgs.msg</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">std_msgs.msg</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">nav_msgs.msg</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">move_base_msgs.msg</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">tf</span> <span class="kn">import</span> <span class="n">transformations</span>
+<span class="kn">import</span> <span class="nn">actionlib</span>
+<span class="kn">from</span> <span class="nn">assignment2.srv</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">reached</span><span class="o">=</span><span class="kc">False</span>
+
+<span class="c1">#list of possible states in the machine</span>
+<span class="n">STATE_INITIALIZE</span> <span class="o">=</span> <span class="s1">&#39;LOAD_MAP&#39;</span>
+<span class="n">STATE_CHOOSE_CORRIDOR</span> <span class="o">=</span> <span class="s1">&#39;DECIDE_CORRIDOR&#39;</span>
+<span class="n">STATE_CHOOSE_URGENT</span> <span class="o">=</span> <span class="s1">&#39;DECIDE_URGENTROOM&#39;</span>
+<span class="n">STATE_MOVING_CORRIDOR</span> <span class="o">=</span> <span class="s2">&quot;MOVING_TO_CORRIDOR&quot;</span>
+<span class="n">STATE_MOVING_URGENT</span> <span class="o">=</span> <span class="s2">&quot;MOVING_TO_URGENT&quot;</span>
+<span class="n">STATE_CORRIDOR</span> <span class="o">=</span> <span class="s1">&#39;CORRIDOR&#39;</span>
+<span class="n">STATE_RECHARGING</span> <span class="o">=</span> <span class="s1">&#39;RECHARGING&#39;</span>
+<span class="n">START_URGENT</span><span class="o">=</span><span class="s1">&#39;URGENT&#39;</span>
+<span class="n">START_CORRIDOR</span><span class="o">=</span><span class="s1">&#39;CORRIDOR&#39;</span>
+<span class="n">STATE_ROOM</span><span class="o">=</span><span class="s1">&#39;ROOM&#39;</span>
+<span class="n">STATE_SCAN</span><span class="o">=</span><span class="s1">&#39;SCANNING&#39;</span>
+<span class="c1"># list of transition states</span>
+<span class="n">TRANS_INITIALIZED</span> <span class="o">=</span> <span class="s1">&#39;map_loaded&#39;</span>
+<span class="n">TRANS_DECIDED_CORRIDOR</span> <span class="o">=</span> <span class="s1">&#39;corridor_chosen&#39;</span>
+<span class="n">TRANS_MOVED_CORRIDOR</span> <span class="o">=</span> <span class="s1">&#39;robot_moved_corridor&#39;</span>
+<span class="n">TRANS_MOVED_URGENT</span><span class="o">=</span> <span class="s1">&#39;robot_moved_urgent&#39;</span>
+<span class="n">TRANS_DECIDED_URGENT</span> <span class="o">=</span> <span class="s1">&#39;urgentroom_chosen&#39;</span>
+<span class="n">TRANS_BATTERY_LOW</span> <span class="o">=</span> <span class="s1">&#39;battery_low&#39;</span>
+<span class="n">TRANS_RECHARGING</span> <span class="o">=</span> <span class="s1">&#39;recharging&#39;</span>
+<span class="n">TRANS_RECHARGED</span> <span class="o">=</span> <span class="s1">&#39;recharged&#39;</span>
+<span class="n">TRANS_SCANNED</span> <span class="o">=</span> <span class="s1">&#39;Environment_Scanned&#39;</span>
+
+<span class="c1"># Sleeping time (in seconds) of the waiting thread to allow the computations</span>
+<span class="c1"># for getting stimulus from the other components of the architecture.</span>
+<span class="n">LOOP_SLEEP_TIME</span> <span class="o">=</span> <span class="mf">0.3</span>
+
+
+
+
+
+
+<div class="viewcode-block" id="rotate"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.rotate">[docs]</a><span class="k">def</span> <span class="nf">rotate</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible for the robot to rotate when the robot is reached to a room or corridor</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">cmd</span><span class="o">=</span><span class="n">Twist</span><span class="p">()</span>
+        <span class="n">cmd</span><span class="o">.</span><span class="n">angular</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">w</span>
+        <span class="n">vel_publisher</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="s1">&#39;/cmd_vel&#39;</span><span class="p">,</span> <span class="n">Twist</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">vel_publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="rot1"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.rot1">[docs]</a><span class="k">def</span> <span class="nf">rot1</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible for the robot arm2 to rotate to scan the markers</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">rot_publisher</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="s1">&#39;/robot4/joint1_position_controller/command&#39;</span><span class="p">,</span> <span class="n">Float64</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">position1</span><span class="o">=</span><span class="n">w</span>
+        <span class="n">rot_publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">position1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="rot2"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.rot2">[docs]</a><span class="k">def</span> <span class="nf">rot2</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible for the robot arm3 to rotate to scan the markers</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">rot_publisher2</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="s1">&#39;/robot4/joint2_position_controller/command&#39;</span><span class="p">,</span> <span class="n">Float64</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">position2</span><span class="o">=</span><span class="n">w</span>
+        <span class="n">rot_publisher2</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">position2</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="rot3"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.rot3">[docs]</a><span class="k">def</span> <span class="nf">rot3</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible for the robot arm1 to rotate to scan the markers</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">rot_publisher3</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="s1">&#39;/robot4/joint3_position_controller/command&#39;</span><span class="p">,</span> <span class="n">Float64</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">position3</span><span class="o">=</span><span class="n">w</span>
+        <span class="n">rot_publisher3</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">position3</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="rot4"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.rot4">[docs]</a><span class="k">def</span> <span class="nf">rot4</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible for the robot arm4 to rotate to scan the markers</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">rot_publisher4</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="s1">&#39;/robot4/joint4_position_controller/command&#39;</span><span class="p">,</span> <span class="n">Float64</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">position4</span><span class="o">=</span><span class="n">w</span>
+        <span class="n">rot_publisher4</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">position4</span><span class="p">)</span>  </div>
+
+<div class="viewcode-block" id="marker_callback"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.marker_callback">[docs]</a><span class="k">def</span> <span class="nf">marker_callback</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible for execting the callback when the /scan_marktopic is beed publushed</span>
+<span class="sd">        to get the information about rooms with the help of marker_server</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="k">global</span> <span class="n">get_id</span> 
+        <span class="n">get_id</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="s2">&quot;/room_info&quot;</span><span class="p">,</span><span class="n">RoomInformation</span><span class="p">)</span>
+        <span class="n">req</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">res</span><span class="o">=</span><span class="n">get_id</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="n">con</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">connections</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ID:&quot;</span><span class="p">,</span><span class="n">req</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;room:&quot;</span><span class="p">,</span><span class="n">res</span><span class="o">.</span><span class="n">room</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;x:&quot;</span><span class="p">,</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;connections:&quot;</span><span class="p">,</span><span class="n">con</span><span class="p">)</span></div>
+        
+              
+        
+<div class="viewcode-block" id="ScanEnvironment"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.ScanEnvironment">[docs]</a><span class="k">class</span> <span class="nc">ScanEnvironment</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to load the ontology map to the rbot</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        
+        <span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TRANS_SCANNED</span><span class="p">])</span>
+        
+
+ 
+                         
+<div class="viewcode-block" id="ScanEnvironment.execute"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.ScanEnvironment.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible for the robot to scan the markers and get </span>
+<span class="sd">        infromation about the specific room and their connections</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata: not used</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_SCANNED(str): transits to STATE_INITIALIZE where the map will be loaded</span>
+<span class="sd">            </span>
+
+<span class="sd">        &quot;&quot;&quot;</span> 
+        
+           
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+
+                                       
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>                                 
+                                       <span class="n">rot3</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                                                              
+                
+                                     
+                                       <span class="c1">##11</span>
+                                       
+                                       <span class="n">rot3</span><span class="p">(</span><span class="o">-</span><span class="mf">2.15</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="o">-</span><span class="mf">0.85</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mf">1.40</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mf">0.50</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="c1">##12</span>
+                                       <span class="n">rot3</span><span class="p">(</span><span class="o">-</span><span class="mf">1.90</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="o">-</span><span class="mf">1.44</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mf">1.40</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mf">0.41</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       
+                                       <span class="c1">##13</span>
+                                       <span class="n">rot3</span><span class="p">(</span><span class="mf">3.35</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="o">-</span><span class="mf">0.72</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mf">0.6</span><span class="p">)</span>                                       
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>                                                   
+                                      
+                                       <span class="c1">##15</span>
+                                       <span class="n">rot3</span><span class="p">(</span><span class="mf">1.6</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="o">-</span><span class="mf">0.80</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mf">1.40</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>                                       
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>   
+                                                                              
+                                       <span class="c1">##16</span>
+                                      
+                                       <span class="n">rot3</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="o">-</span><span class="mf">1.12</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mf">0.55</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mf">0.18</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>     
+                                                 
+                                       <span class="c1">##14</span>
+                                       <span class="n">rot3</span><span class="p">(</span><span class="o">-</span><span class="mf">0.72</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="o">-</span><span class="mf">0.84</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mf">0.48</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mf">0.10</span><span class="p">)</span>                                       
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>                                        
+                                       <span class="c1">##17</span>
+                                       <span class="n">rot3</span><span class="p">(</span><span class="o">-</span><span class="mf">0.96</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="o">-</span><span class="mf">0.84</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mf">0.58</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mf">0.55</span><span class="p">)</span>                                       
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>   
+                                         
+                                     
+                                                                                                                     
+                                       <span class="n">rot3</span><span class="p">(</span><span class="mf">3.14</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot1</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot2</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="n">rot4</span><span class="p">(</span><span class="o">-</span><span class="mf">0.43</span><span class="p">)</span>                                       
+                                       <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> 
+                                       <span class="k">return</span> <span class="n">TRANS_SCANNED</span></div></div>
+                                                                                                         
+                                       
+
+        
+
+
+    
+<div class="viewcode-block" id="LoadEnvironment"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.LoadEnvironment">[docs]</a><span class="k">class</span> <span class="nc">LoadEnvironment</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to load the ontology map to the rbot</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        
+        <span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TRANS_INITIALIZED</span><span class="p">])</span>
+
+<div class="viewcode-block" id="LoadEnvironment.execute"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.LoadEnvironment.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible of the loading of the</span>
+<span class="sd">        environment. It calls the LoadOntologyMap() which helps for the robot to know the environment</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata: not used</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_INITIALIZED(str): transits to STATE_NORMAL which is a nested statemachine</span>
+
+<span class="sd">        &quot;&quot;&quot;</span> 
+        
+        <span class="n">client</span> <span class="o">=</span> <span class="n">actionlib</span><span class="o">.</span><span class="n">SimpleActionClient</span><span class="p">(</span><span class="s1">&#39;move_base&#39;</span><span class="p">,</span> <span class="n">MoveBaseAction</span><span class="p">)</span>
+        <span class="n">my_goal</span><span class="o">=</span><span class="n">MoveBaseActionGoal</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Robot is Going to Corridor E to Load Ontology Map&quot;</span><span class="p">)</span>
+        <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+        <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">1.5</span>
+        <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">8.0</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+        <span class="k">if</span>  <span class="n">client</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span><span class="o">==</span><span class="n">GoalStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+            <span class="n">LoadOntologyMap</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ONTOLOGY MAP LOADED&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">TRANS_INITIALIZED</span></div></div>
+        
+        
+    
+
+<div class="viewcode-block" id="ChooseCorridor"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.ChooseCorridor">[docs]</a><span class="k">class</span> <span class="nc">ChooseCorridor</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class for the root to decide which corridor it should reach</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_helper</span><span class="p">,</span> <span class="n">ontology_helper</span><span class="p">):</span>
+        
+        <span class="c1"># Get a reference to the interfaces with the other nodes of the architecture.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span> <span class="o">=</span> <span class="n">interface_helper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_helper</span>
+        <span class="c1"># Get the environment size from ROS parameters.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="s1">&#39;config/environment_size&#39;</span><span class="p">)</span>
+        <span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TRANS_RECHARGING</span><span class="p">,</span> <span class="n">TRANS_DECIDED_CORRIDOR</span><span class="p">,</span><span class="n">TRANS_DECIDED_URGENT</span><span class="p">],</span> <span class="n">output_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">,</span><span class="s1">&#39;random_plan&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="ChooseCorridor.execute"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.ChooseCorridor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible of the transitions between the </span>
+<span class="sd">        STATE_CHOOSE_CORRIDOR and the STATE_RECHARGING or STATE_MOVING_CORRIDOR or STATE_CHOOSE_URGENT.</span>
+<span class="sd">        In this function theere are three possible transitions where if the battery is low,the state will be STATE_RECHARGING,if the target is</span>
+<span class="sd">        a corridor the state will be STATE_MOVING_CORRIDOR and if the target is a urgent room he state will be STATE_CHOOSE_URGENT.A planner is used and it plans a path to be followed</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata: used for output_keys to pass data to the other states.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_RECHARGING (str): transition to STATE_RECHARGING.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_DECIDED_URGENT (str): transition to the STATE_DECISION_URGENT.</span>
+<span class="sd">            </span>
+<span class="sd">        .Returns:</span>
+<span class="sd">            TRANS_DECIDED_CORRIDOR (str): transition to the STATE_DECISION_CORRIDOR.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Define a random point to be reached through some via-points to be planned.</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">PlanGoal</span><span class="p">()</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="n">x</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                            <span class="n">y</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">actionlib</span><span class="o">.</span><span class="n">SimpleActionClient</span><span class="p">(</span><span class="s1">&#39;move_base&#39;</span><span class="p">,</span> <span class="n">MoveBaseAction</span><span class="p">)</span>
+        <span class="n">my_goal</span><span class="o">=</span><span class="n">MoveBaseActionGoal</span><span class="p">()</span>
+        <span class="n">robot_position</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">choose_target</span><span class="p">()</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span> <span class="o">=</span> <span class="n">robot_position</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="c1"># Invoke the planner action server.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="c1"># Acquire the mutex to assure data consistencies with the ROS subscription threads managed by `self._helper`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>  <span class="c1"># Higher priority</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                       <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Robot&#39;s Battery is low and going to recharge room for recharge &quot;</span><span class="p">)</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">1.5</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">8.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                <span class="k">if</span>  <span class="n">client</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span><span class="o">==</span><span class="n">GoalStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">robot_position</span><span class="p">)</span>
+                          <span class="k">return</span> <span class="n">TRANS_RECHARGING</span>                                    
+                <span class="c1"># If the battery is low, then cancel the control action server and take the `battery_low` transition.</span>
+                <span class="c1"># If the target is a Rooom then planner cancels goals and transition TRANS_DECIDED_URGENT occurs</span>
+                <span class="k">if</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;R1&#39;</span> <span class="ow">or</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;R2&#39;</span> <span class="ow">or</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;R3&#39;</span> <span class="ow">or</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;R4&#39;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                        <span class="k">return</span> <span class="n">TRANS_DECIDED_URGENT</span>	
+                 <span class="c1"># If the planner finishes its computation, then take the TRANS_DECIDED_CORRIDOR transition</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">via_points</span>
+                    <span class="k">return</span> <span class="n">TRANS_DECIDED_CORRIDOR</span>
+
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Release the mutex to unblock the `self._helper` subscription threads if they are waiting.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="c1"># Wait for a reasonably small amount of time to allow `self._helper` processing stimulus (eventually).</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MoveToTargetCorridor"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.MoveToTargetCorridor">[docs]</a><span class="k">class</span> <span class="nc">MoveToTargetCorridor</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to move he robot to a cooridor which has been acquired</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_helper</span><span class="p">,</span> <span class="n">ontology_helper</span><span class="p">):</span>
+        <span class="c1"># Get a reference to the interfaces with the other nodes of the architecture.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span> <span class="o">=</span> <span class="n">interface_helper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_helper</span>
+
+        <span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TRANS_RECHARGING</span><span class="p">,</span> <span class="n">TRANS_MOVED_CORRIDOR</span><span class="p">],</span> <span class="n">input_keys</span> <span class="o">=</span> <span class="p">[</span> <span class="s2">&quot;random_plan&quot;</span><span class="p">,</span><span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">],</span> <span class="n">output_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;robot_position&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="MoveToTargetCorridor.execute"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.MoveToTargetCorridor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible of the transition between the </span>
+<span class="sd">        STATE_MOVING_CORRIDOR and the STATE_RECHARGING or STATE_CHOOSE_CORRIDOR.</span>
+<span class="sd">        this class is responsible for the robot to move to decided corridor and stays for specific time.A controller is used to enable the movement of the robot</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata: for input_keys and output_keys to get data and pass data.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_RECHARGING(str): transition to the STATE_RECHARGING.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_MOVED_CORRIDOR(str): transition to STATE_DECISION_CORRIDOR.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plan</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span>
+        <span class="c1"># Start the action server for moving the robot through the planned via-points.</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">ControlGoal</span><span class="p">(</span><span class="n">via_points</span> <span class="o">=</span> <span class="n">plan</span><span class="p">)</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">actionlib</span><span class="o">.</span><span class="n">SimpleActionClient</span><span class="p">(</span><span class="s1">&#39;move_base&#39;</span><span class="p">,</span> <span class="n">MoveBaseAction</span><span class="p">)</span>
+        <span class="n">my_goal</span><span class="o">=</span><span class="n">MoveBaseActionGoal</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="n">robot_position</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">target</span>
+
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="c1"># Acquire the mutex to assure data consistencies with the ROS subscription threads managed by `self._helper`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>  <span class="c1"># Higher priority</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                       <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Robot&#39;s Battery is low and going to recharge room for recharge &quot;</span><span class="p">)</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">1.5</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">8.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                <span class="k">if</span>  <span class="n">client</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span><span class="o">==</span><span class="n">GoalStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">robot_position</span><span class="p">)</span>
+                          <span class="k">return</span> <span class="n">TRANS_RECHARGING</span>         
+                <span class="c1"># If the controller finishes its computation, then take the `went_random_pose` transition, which is related to the `repeat` transition.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">target</span><span class="o">==</span><span class="s2">&quot;C1&quot;</span><span class="p">:</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.5</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">0.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="n">target</span><span class="o">==</span><span class="s2">&quot;C2&quot;</span><span class="p">:</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">3.5</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">0.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                    <span class="c1">#the robot stays in a corridr for specific time period</span>
+
+                <span class="k">if</span>  <span class="n">client</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span><span class="o">==</span><span class="n">GoalStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">move_location</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">robot_position</span><span class="p">)</span>
+                          <span class="n">rotate</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+                          <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">MONITOR_TIME</span><span class="p">)</span>
+                          <span class="k">return</span> <span class="n">TRANS_MOVED_CORRIDOR</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Release the mutex to unblock the `self._helper` subscription threads if they are waiting.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="c1"># Wait for a reasonably small amount of time to allow `self._helper` processing stimulus (eventually).</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+
+
+<div class="viewcode-block" id="ChooseUrgent"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.ChooseUrgent">[docs]</a><span class="k">class</span> <span class="nc">ChooseUrgent</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class for the root to decide which Urgent room it should reach</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_helper</span><span class="p">,</span> <span class="n">ontology_helper</span><span class="p">):</span>
+        
+        <span class="c1"># Get a reference to the interfaces with the other nodes of the architecture.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span> <span class="o">=</span> <span class="n">interface_helper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_helper</span>
+        <span class="c1"># Get the environment size from ROS parameters.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="s1">&#39;config/environment_size&#39;</span><span class="p">)</span>
+        <span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TRANS_RECHARGING</span><span class="p">,</span> <span class="n">TRANS_DECIDED_URGENT</span><span class="p">,</span><span class="n">TRANS_DECIDED_CORRIDOR</span><span class="p">],</span> <span class="n">output_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">,</span><span class="s1">&#39;random_plan&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="ChooseUrgent.execute"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.ChooseUrgent.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible of the transitions between the </span>
+<span class="sd">        STATE_CHOOSE_URGENT and the STATE_RECHARGING or STATE_MOVING_URGENT or STATE_CHOOSE_CORRIDOR.</span>
+<span class="sd">        In this function theere are three possible transitions where if the battery is low,the state will be STATE_RECHARGING,if the target is</span>
+<span class="sd">        a corridor the state will be STATE_DECISON_CORRIDOR and if the target is a urgent room he state will be STATE_MOVING_URGENT.A planner is used and it plans a path to be followed</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata: used for output_keys to pass data to the other states.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_RECHARGING (str): transition to STATE_RECHARGING.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_DECIDED_URGENT (str): transition to the STATE_DECISION_URGENT.</span>
+<span class="sd">            </span>
+<span class="sd">        .Returns:</span>
+<span class="sd">            TRANS_DECIDED_CORRIDOR (str): transition to the STATE_DECISION_CORRIDOR.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Define a random point to be reached through some via-points to be planned.</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">PlanGoal</span><span class="p">()</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="n">x</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                            <span class="n">y</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">actionlib</span><span class="o">.</span><span class="n">SimpleActionClient</span><span class="p">(</span><span class="s1">&#39;move_base&#39;</span><span class="p">,</span> <span class="n">MoveBaseAction</span><span class="p">)</span>
+        <span class="n">my_goal</span><span class="o">=</span><span class="n">MoveBaseActionGoal</span><span class="p">()</span>
+        <span class="n">robot_position</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">choose_target</span><span class="p">()</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span> <span class="o">=</span> <span class="n">robot_position</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="c1"># Invoke the planner action server.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="c1"># Acquire the mutex to assure data consistencies with the ROS subscription threads managed by `self._helper`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>  <span class="c1"># Higher priority</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                       <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Robot&#39;s Battery is low and going to recharge room for recharge &quot;</span><span class="p">)</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">1.5</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">8.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                <span class="k">if</span>  <span class="n">client</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span><span class="o">==</span><span class="n">GoalStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">robot_position</span><span class="p">)</span>
+                          <span class="k">return</span> <span class="n">TRANS_RECHARGING</span>         
+                <span class="c1"># If the battery is low, then cancel the control action server and take the `battery_low` transition.</span>
+                <span class="c1">#if the target is a corridor then planner cancels goal and transition TRANS_DECIDED_CORRIDOR occurs</span>
+                <span class="k">if</span>  <span class="n">target</span><span class="o">==</span><span class="s1">&#39;C1&#39;</span> <span class="ow">or</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;C2&#39;</span> <span class="ow">or</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;E&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                    <span class="k">return</span> <span class="n">TRANS_DECIDED_CORRIDOR</span>
+                <span class="c1"># If the controller finishes its computation, then take the `went_random_pose` transition, which is related to the `repeat` transition.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">via_points</span>
+                    <span class="k">return</span> <span class="n">TRANS_DECIDED_URGENT</span>
+
+
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Release the mutex to unblock the `self._helper` subscription threads if they are waiting.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="c1"># Wait for a reasonably small amount of time to allow `self._helper` processing stimulus (eventually).</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MoveToTargetUrgent"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.MoveToTargetUrgent">[docs]</a><span class="k">class</span> <span class="nc">MoveToTargetUrgent</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to move the robot to a Urgent room which has been acquired</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_helper</span><span class="p">,</span> <span class="n">ontology_helper</span><span class="p">):</span>
+        <span class="c1"># Get a reference to the interfaces with the other nodes of the architecture.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span> <span class="o">=</span> <span class="n">interface_helper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_helper</span>
+
+        <span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TRANS_RECHARGING</span><span class="p">,</span> <span class="n">TRANS_MOVED_URGENT</span><span class="p">],</span> <span class="n">input_keys</span> <span class="o">=</span> <span class="p">[</span> <span class="s2">&quot;random_plan&quot;</span><span class="p">,</span><span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">],</span> <span class="n">output_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;crobot_position&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="MoveToTargetUrgent.execute"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.MoveToTargetUrgent.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible of the transition between the </span>
+<span class="sd">        STATE_MOVING_URGENT and the STATE_RECHARGING or STATE_CHOOSE_URGENT.</span>
+<span class="sd">        this class is responsible for the robot to move to decided corridor and stays for specific time.A controller is used to enable the movement of the robot</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata: for input_keys and output_keys to get data and pass data.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_RECHARGING(str): transition to the STATE_RECHARGING.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_MOVED_URGENT(str): transition to STATE_DECISION_URGENT.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get the plan to a random position computed by the `PLAN_TO_RANDOM_POSE` state.</span>
+        <span class="n">plan</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span>
+        <span class="c1"># Start the action server for moving the robot through the planned via-points.</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">ControlGoal</span><span class="p">(</span><span class="n">via_points</span> <span class="o">=</span> <span class="n">plan</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ControlGoal: via points to reach the goal </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">actionlib</span><span class="o">.</span><span class="n">SimpleActionClient</span><span class="p">(</span><span class="s1">&#39;move_base&#39;</span><span class="p">,</span> <span class="n">MoveBaseAction</span><span class="p">)</span>
+        <span class="n">my_goal</span><span class="o">=</span><span class="n">MoveBaseActionGoal</span><span class="p">()</span>
+        <span class="n">robot_position</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">target</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="c1"># Acquire the mutex to assure data consistencies with the ROS subscription threads managed by `self._helper`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>  <span class="c1"># Higher priority</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                       <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Robot&#39;s Battery is low and going to recharge room for recharge &quot;</span><span class="p">)</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">1.5</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">8.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                <span class="k">if</span>  <span class="n">client</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span><span class="o">==</span><span class="n">GoalStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">robot_position</span><span class="p">)</span>
+                          <span class="k">return</span> <span class="n">TRANS_RECHARGING</span>         
+                <span class="c1"># If the battery is low, then cancel the control action server and take the `battery_low` transition.</span>
+                <span class="c1"># If the controller finishes its computation, then take the `went_random_pose` transition, which is related to the `repeat` transition.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">target</span><span class="o">==</span><span class="s2">&quot;R1&quot;</span><span class="p">:</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">7.0</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">3.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="n">target</span><span class="o">==</span><span class="s2">&quot;R2&quot;</span><span class="p">:</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">7.0</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">4.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="n">target</span><span class="o">==</span><span class="s2">&quot;R3&quot;</span><span class="p">:</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">9.0</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">3.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="n">target</span><span class="o">==</span><span class="s2">&quot;R4&quot;</span><span class="p">:</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;odom&quot;</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">9.0</span>
+                       <span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">4.0</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">my_goal</span><span class="o">.</span><span class="n">goal</span><span class="p">)</span>
+                       <span class="n">client</span><span class="o">.</span><span class="n">wait_for_result</span><span class="p">()</span>
+                    <span class="c1">#the robot stays in a corridr for specific time period</span>
+
+                <span class="k">if</span>  <span class="n">client</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span><span class="o">==</span><span class="n">GoalStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">move_location</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">robot_position</span><span class="p">)</span>
+                          <span class="n">rotate</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+                          <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">MONITOR_TIME</span><span class="p">)</span>
+                          <span class="k">return</span> <span class="n">TRANS_MOVED_URGENT</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Release the mutex to unblock the `self._helper` subscription threads if they are waiting.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="c1"># Wait for a reasonably small amount of time to allow `self._helper` processing stimulus (eventually).</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+
+
+
+<div class="viewcode-block" id="Recharging"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.Recharging">[docs]</a><span class="k">class</span> <span class="nc">Recharging</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class for executing Recharging for the robot</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_helper</span><span class="p">,</span> <span class="n">ontology_helper</span><span class="p">):</span>
+        <span class="c1"># Get a reference to the interfaces with the other nodes of the architecture.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span> <span class="o">=</span> <span class="n">interface_helper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_helper</span>
+        <span class="c1"># Initialise this state with possible transitions (i.e., valid outputs of the `execute` function).</span>
+        <span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TRANS_RECHARGED</span><span class="p">])</span>
+
+    <span class="c1"># Define the function performed each time a transition is such to enter in this state.</span>
+    <span class="c1"># Note that the input parameter `userdata` is not used since no data is required from the other states.</span>
+<div class="viewcode-block" id="Recharging.execute"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.Recharging.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function responsible of the transition between the </span>
+<span class="sd">        STATE_RECHARGING to the STATE_NORMAL.</span>
+<span class="sd">	the robot will be in this state until the battery is enough</span>
+<span class="sd"> </span>
+<span class="sd">        Args:</span>
+<span class="sd">            userdata: not used</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            TRANS_RECHARGED(str): transition to STATE_NORMAL</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>  <span class="c1"># Wait for stimulus from the other nodes of the architecture.</span>
+            <span class="c1"># Acquire the mutex to assure data consistencies with the ROS subscription threads managed by `self._helper`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># If the battery is no low anymore take the `charged` transition.</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">reset_states</span><span class="p">()</span>  <span class="c1"># Reset the state variable related to the stimulus.</span>
+                    <span class="k">return</span> <span class="n">TRANS_RECHARGED</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Release the mutex to unblock the `self._helper` subscription threads if they are waiting.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_helper</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="c1"># Wait for a reasonably small amount of time to allow `self._helper` processing stimulus (eventually).</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../index.html#scripts.finite_statemachine.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function creates the state machine and defines all the transitions. Here two nested state machine are created.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+   
+    <span class="n">rospy</span><span class="o">.</span><span class="n">init_node</span><span class="p">(</span><span class="s1">&#39;Finite_state_machine&#39;</span><span class="p">,</span> <span class="n">log_level</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="s2">&quot;/scan_marker&quot;</span><span class="p">,</span> <span class="n">Int64</span><span class="p">,</span> <span class="n">marker_callback</span><span class="p">)</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="s2">&quot;/room_info&quot;</span><span class="p">)</span>
+    <span class="n">get_id</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="s2">&quot;/room_info&quot;</span><span class="p">,</span><span class="n">RoomInformation</span><span class="p">)</span>
+    
+    
+    <span class="c1"># Initialise an classes to manage the interfaces with the other nodes in the architecture.</span>
+    <span class="n">helper</span> <span class="o">=</span> <span class="n">InterfaceHelper</span><span class="p">()</span>
+    <span class="n">ontology</span> <span class="o">=</span> <span class="n">OntologyHelper</span><span class="p">()</span>
+    <span class="n">sm_main</span> <span class="o">=</span> <span class="n">StateMachine</span><span class="p">([])</span>
+    <span class="k">with</span> <span class="n">sm_main</span><span class="p">:</span>
+        <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_SCAN</span><span class="p">,</span> <span class="n">ScanEnvironment</span><span class="p">(),</span>
+                         <span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span><span class="n">TRANS_SCANNED</span><span class="p">:</span> <span class="n">STATE_INITIALIZE</span><span class="p">})</span>
+        
+        <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_INITIALIZE</span><span class="p">,</span> <span class="n">LoadEnvironment</span><span class="p">(),</span>
+                         <span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span><span class="n">TRANS_INITIALIZED</span><span class="p">:</span> <span class="n">STATE_CORRIDOR</span><span class="p">})</span>
+        
+        <span class="n">sm_corridor</span> <span class="o">=</span> <span class="n">StateMachine</span><span class="p">(</span><span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="n">TRANS_BATTERY_LOW</span><span class="p">,</span><span class="n">START_URGENT</span><span class="p">])</span>
+
+        <span class="k">with</span> <span class="n">sm_corridor</span><span class="p">:</span>
+            <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_CHOOSE_CORRIDOR</span><span class="p">,</span> <span class="n">ChooseCorridor</span><span class="p">(</span><span class="n">helper</span><span class="p">,</span> <span class="n">ontology</span><span class="p">),</span>
+                            <span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span><span class="n">TRANS_RECHARGING</span> <span class="p">:</span> <span class="n">TRANS_BATTERY_LOW</span><span class="p">,</span>
+                                            <span class="n">TRANS_DECIDED_CORRIDOR</span><span class="p">:</span> <span class="n">STATE_MOVING_CORRIDOR</span><span class="p">,</span><span class="n">TRANS_DECIDED_URGENT</span><span class="p">:</span><span class="n">START_URGENT</span><span class="p">})</span>
+            <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_MOVING_CORRIDOR</span><span class="p">,</span> <span class="n">MoveToTargetCorridor</span><span class="p">(</span><span class="n">helper</span><span class="p">,</span> <span class="n">ontology</span><span class="p">),</span>
+                            <span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span><span class="n">TRANS_RECHARGING</span> <span class="p">:</span> <span class="n">TRANS_BATTERY_LOW</span><span class="p">,</span>
+                                            <span class="n">TRANS_MOVED_CORRIDOR</span><span class="p">:</span> <span class="n">STATE_CHOOSE_CORRIDOR</span><span class="p">})</span>
+                                            
+        <span class="n">sm_room</span> <span class="o">=</span> <span class="n">StateMachine</span><span class="p">(</span><span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="n">TRANS_BATTERY_LOW</span><span class="p">,</span> <span class="n">START_CORRIDOR</span><span class="p">])</span>
+	
+        <span class="k">with</span> <span class="n">sm_room</span><span class="p">:</span>
+            <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_CHOOSE_URGENT</span><span class="p">,</span> <span class="n">ChooseUrgent</span><span class="p">(</span><span class="n">helper</span><span class="p">,</span> <span class="n">ontology</span><span class="p">),</span>
+                            <span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span><span class="n">TRANS_RECHARGING</span> <span class="p">:</span> <span class="n">TRANS_BATTERY_LOW</span><span class="p">,</span>
+                                            <span class="n">TRANS_DECIDED_URGENT</span><span class="p">:</span> <span class="n">STATE_MOVING_URGENT</span><span class="p">,</span><span class="n">TRANS_DECIDED_CORRIDOR</span><span class="p">:</span> <span class="n">START_CORRIDOR</span><span class="p">})</span>
+            <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_MOVING_URGENT</span><span class="p">,</span> <span class="n">MoveToTargetUrgent</span><span class="p">(</span><span class="n">helper</span><span class="p">,</span> <span class="n">ontology</span><span class="p">),</span>
+                            <span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span><span class="n">TRANS_RECHARGING</span> <span class="p">:</span> <span class="n">TRANS_BATTERY_LOW</span><span class="p">,</span>
+                                            <span class="n">TRANS_MOVED_URGENT</span><span class="p">:</span> <span class="n">STATE_CHOOSE_URGENT</span><span class="p">})</span>
+           
+        <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_CORRIDOR</span><span class="p">,</span> <span class="n">sm_corridor</span><span class="p">,</span>
+                         <span class="n">transitions</span><span class="o">=</span><span class="p">{</span><span class="n">TRANS_BATTERY_LOW</span><span class="p">:</span> <span class="n">STATE_RECHARGING</span><span class="p">,</span><span class="n">START_URGENT</span><span class="p">:</span><span class="n">STATE_ROOM</span><span class="p">})</span>
+        <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_ROOM</span><span class="p">,</span> <span class="n">sm_room</span><span class="p">,</span>
+                         <span class="n">transitions</span><span class="o">=</span><span class="p">{</span><span class="n">TRANS_BATTERY_LOW</span><span class="p">:</span> <span class="n">STATE_RECHARGING</span><span class="p">,</span><span class="n">START_CORRIDOR</span><span class="p">:</span><span class="n">STATE_CORRIDOR</span><span class="p">})</span>
+            
+        <span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">STATE_RECHARGING</span><span class="p">,</span> <span class="n">Recharging</span><span class="p">(</span><span class="n">helper</span><span class="p">,</span> <span class="n">ontology</span><span class="p">),</span>
+                            <span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span><span class="n">TRANS_RECHARGED</span><span class="p">:</span> <span class="n">STATE_CORRIDOR</span><span class="p">})</span>
+    <span class="c1"># Create and start the introspection server for visualization</span>
+    <span class="n">sis</span> <span class="o">=</span> <span class="n">smach_ros</span><span class="o">.</span><span class="n">IntrospectionServer</span><span class="p">(</span><span class="s1">&#39;sm_introspection&#39;</span><span class="p">,</span> <span class="n">sm_main</span><span class="p">,</span> <span class="s1">&#39;/SM_ROOT&#39;</span><span class="p">)</span>
+    <span class="n">sis</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="c1"># Execute the state machine</span>
+    <span class="n">outcome</span> <span class="o">=</span> <span class="n">sm_main</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+
+    <span class="c1"># Wait for ctrl-c to stop the application</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">spin</span><span class="p">()</span>
+    <span class="n">sis</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+   
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Aatheethyaa Dhanasekaran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
