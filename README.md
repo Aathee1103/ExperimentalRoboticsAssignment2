@@ -15,8 +15,10 @@ The Repository consists of packages required for the Assignment 2 of Experimenta
 # 2.Scanning aruco markers:
 ![Scanning_marker](https://user-images.githubusercontent.com/80621864/210329002-6ae2f9cb-6f9e-43e7-9bef-7d61fc5bf4fa.gif)
 - The video shows how the robotic arm is used to scan the markers with the help of robotic arm.the robotic arm is rotated by publishing to the topic **/robot4/joint1_position_controller/command**(This command is for the joint 1,similary done for all other joints).the marker_server service is called to get the response where the detals of the rooms is provided where the marker id is the request provided.the marker pblisher node is startded using the command **rosrun aruco_ros marker_publisher /image:=/camera3/image_raw** .
-- ![Screenshot 2023-01-02 210032](https://user-images.githubusercontent.com/80621864/210333936-9a3644a6-85ff-42b8-b70c-b9ad6f04e71a.jpg)
-Once the Scanning of markers is completed,the robot will go to the location **E** to upload the map.
+ 
+- Once the Scanning of markers is completed,the robot will go to the location **E** to upload the map.
+![Uploading Screenshot 2023-01-02 180429.jpg…]()
+
 
 
 # 3.Working:
