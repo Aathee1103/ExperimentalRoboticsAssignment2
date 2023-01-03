@@ -11,6 +11,11 @@ The Repository consists of packages required for the Assignment 2 of Experimenta
 - A camera is attached in the prismatic joint to scan the the aruco markers which is done with the help of **aruco ros** package,where marker publisher node publishes a standard message of topic named as **/scan_marker** and the finite state machine node subcribes to the publisher to get the semantic infromation of the map by calling the **marker_server** service node.
 - Same **planners** and **controller** action servers are used which has been already used in the first asssignment.additionally move_base is used in the FSM node of this assignment.
 - The move_base and gmapping packages takes the parameters inputs from param folder where all yaml file corresponds to each specific behavious lise developing cost_map,.etc.
+
+- <img width="565" alt="image" src="https://user-images.githubusercontent.com/80621864/210359399-11fcfdf9-9911-45b6-be54-935d1ed2cc0f.png">
+
+The picture indicates the how the FSM node uses move_base goal to the robot to move to thr target according to the Coordinates of the room and if the external stimulus battery low occurs,the goal will be set to the location **E**.this is been implemented using the **Goalstatus** property of action sever.if the Goal status is success,then the robot will rotate to monitor using the **rotate** function which subscribes to **/cmd_vel**.Similar procedure implemented for the rooms.the state shown in the image is **MoveToTargetCorridor**
+
 # 2.Scanning aruco markers:
 ![Scanning_marker](https://user-images.githubusercontent.com/80621864/210329002-6ae2f9cb-6f9e-43e7-9bef-7d61fc5bf4fa.gif)
 
