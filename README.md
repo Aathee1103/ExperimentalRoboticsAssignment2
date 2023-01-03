@@ -12,6 +12,7 @@ The Repository consists of packages required for the Assignment 2 of Experimenta
 - The above image shows how the robot model is built.the robot has 2 wheels which is a continuous joint which is controlled with differentia drive controller.it has also a robotic arm which includes a base with continuous join,two revolute joint,one fixed joint and one prismatic joint.the robot description is done in the robot_urdf folder which consists of two files **robot4.xacro** and **robot4.gazebo** where the links,joint and controlled have been mentioned.
 - Acamera is attached in the prismatic joint to scan the the aruco markers which is done with the help of **aruco ros** package,where marker publisher node publishes atandard message of topic named as **/scan_marker** and the finite state machine subcribes to the publisher to get the semantic infromation of the map by calling the **marker_server** service node.
 - Same planners and controller action servers are used which has been already used in the first asssignment.additionally move_base is used in this assignment.
+- The move_base and gmapping packages takes the parameters inputs from param folder where all yaml file corresponds to each specific behavious.
 # 2.Scanning aruco markers:
 ![Scanning_marker](https://user-images.githubusercontent.com/80621864/210329002-6ae2f9cb-6f9e-43e7-9bef-7d61fc5bf4fa.gif)
 - The video shows how the robotic arm is used to scan the markers with the help of robotic arm.the robotic arm is rotated by publishing to the topic **/robot4/joint1_position_controller/command**(This command is for the joint 1,similary done for all other joints).the marker_server service is called to get the response where the detals of the rooms is provided where the marker id is the request provided.the marker pblisher node is startded using the command **rosrun aruco_ros marker_publisher /image:=/camera3/image_raw** .
@@ -37,7 +38,7 @@ The Repository consists of packages required for the Assignment 2 of Experimenta
 
  ![robot_monitor](https://user-images.githubusercontent.com/80621864/210334112-1a7d4831-0b80-4f6c-98f5-f2c6cbbe8c81.gif)
 
-- The video shows how the robot is rotated when it reaches the room or an corridor,tis is done by publishing to the topic  **/cmd_vel** and provided an ngle to rotate.
+- The video shows how the robot is rotated when it reaches the room or an corridor,this is done by publishing to the topic  **/cmd_vel** and provided an gngle to rotate.
 
 # 4.Installation and Running the project:
 ```
@@ -49,6 +50,16 @@ $rosrun smach_viewer smach_viewer.py to visualize the change in states.
 ```
 In the mb2.launch file assignment.launch,gmapping.launch,move_base.launch has been added.
 
+# 5.Component Diagram:
+![fsm assignment2](https://user-images.githubusercontent.com/80621864/210341200-f0c04c26-7fb4-4243-acde-884c3c4f2aaf.jpg)
+- The component diagram is quite similar to the frist same set of nodes have been used additional to the marker_publish and move_bas has been used for this practical simulation of this assignment.
 
+# 6.Limitations and Improements:
+- The robotic arm set up in the link chassis has been not provided wih correct parameters.so the arm will have a vibration to it.the Propotional,integrative and differential values mentioned in the motors_conig.yaml file is not accurate.so his vibration have to reduced to get smooth movement of the arm.
+- The robot base is rotated everytime it has been reached to room or corridor and after that someime robot takes a long path to reach a nearby target.this have to changed by changing the paramaters in parameter file where all yaml file corresponds to he collision avoidance,.etc.
+- Istead of rotating the robot when it reaches the corridor the robot should be monitoring the corridors by going through the astart and end area of corridor for providing a good surveillance behaviours.
+
+# Done by:
+Aatheethyaa Dhanasekaran(5051520)
 
 
