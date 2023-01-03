@@ -19,6 +19,7 @@ The video shows how the robotic arm is used to scan the markers with the help of
 ![overall_working](../overall_working.gif)
 
 
+
 To start, you are provided with this package, which contains:
 - the definition of a custom message and a custom service
 - a simulation environment representing the "house" to be monitored
