@@ -21,10 +21,10 @@ Once the Scanning of markers is completed,the robot will go to the location **E*
 
 # 3.Working:
 - The working of the assignment has been shown in the **overall_woking.gif**.where the robot is moving in the environment with the help of move_base goal given to it.gmapping pachage is also used to develop the map for the robot,collison avoidance or obstacle avoidance are using these two packages.with the help of Rviz we can visualize ho the robot s building the map,setting the target accordingly.also local and global cost map is provided with the help of gmapping and move_base package.the robot is also equiped with a laser in its front to know where the obstacles are there develop the map according to that.once the robot reaces the room or the corridor it rotates to monitor before going to another target.
-- ![Screenshot 2023-01-02 181656](https://user-images.githubusercontent.com/80621864/210332988-5821e92e-08bd-4581-bc94-04bd05a43d87.jpg)
-when the robot's batter is low the goals are cancelled and reaches the location **E** to get charged.
-- ![Screenshot 2023-01-02 210032](https://user-images.githubusercontent.com/80621864/210333447-ccbed254-9c15-4adc-b152-d38f96fd508a.jpg)
-The above image shows the changes between the states,sam set of states has been used with respect to the last assignment,but additionall a state called as **SCANNING** has been added befre loading the map.
+ ![Screenshot 2023-01-02 181656](https://user-images.githubusercontent.com/80621864/210332988-5821e92e-08bd-4581-bc94-04bd05a43d87.jpg)
+- when the robot's batter is low the goals are cancelled and reaches the location **E** to get charged.
+ ![Screenshot 2023-01-02 210032](https://user-images.githubusercontent.com/80621864/210333447-ccbed254-9c15-4adc-b152-d38f96fd508a.jpg)
+- The above image shows the changes between the states,sam set of states has been used with respect to the last assignment,but additionall a state called as **SCANNING** has been added befre loading the map.
 - ![robot_monitor](https://user-images.githubusercontent.com/80621864/210334112-1a7d4831-0b80-4f6c-98f5-f2c6cbbe8c81.gif)
 The video shows how the robot is rotated when it reaches the room or an corridor,tis is done by publishing to the topic  **/cmd_vel** and provided an ngle to rotate.
 
