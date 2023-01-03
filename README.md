@@ -60,5 +60,6 @@ In the mb2.launch file assignment.launch,gmapping.launch,move_base.launch has be
 
 # Done by:
 Aatheethyaa Dhanasekaran(5051520)
+Email:aatheethya2703@gmail.com
 
 
