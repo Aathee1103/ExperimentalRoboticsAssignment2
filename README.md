@@ -9,7 +9,7 @@ The Repository consists of packages required for the Assignment 2 of Experimenta
 
 # 1.Robot Model and description:
 ![Screenshot 2023-01-02 173837](https://user-images.githubusercontent.com/80621864/210327492-c46c3c08-2bb1-4b4c-a9cc-250e743da056.jpg)
-- The above image shows how the robot model is built.the robot has 2 wheels which is a continuous joint which is controlled with differentia drive controller.it has also a robotic arm which includes a base with continuous join,two revolute joint,one fixed joint and one prismatic joint.the robot description is done in the robot_urdf folder which consists of two files robot4.xacro and robot4.gazebo where the links,joint and controlled have been mentioned.
+- The above image shows how the robot model is built.the robot has 2 wheels which is a continuous joint which is controlled with differentia drive controller.it has also a robotic arm which includes a base with continuous join,two revolute joint,one fixed joint and one prismatic joint.the robot description is done in the robot_urdf folder which consists of two files **robot4.xacro** and **robot4.gazebo** where the links,joint and controlled have been mentioned.
 - Acamera is attached in the prismatic joint to scan the the aruco markers which is done with the help of **aruco ros** package,where marker publisher node publishes atandard message of topic named as **/scan_marker** and the finite state machine subcribes to the publisher to get the semantic infromation of the map by calling the **marker_server** service node.
 - Same planners and controller action servers are used which has been already used in the first asssignment.additionally move_base is used in this assignment.
 # 2.Scanning aruco markers:
@@ -34,36 +34,21 @@ The Repository consists of packages required for the Assignment 2 of Experimenta
 
 - The above image shows the changes between the states,sam set of states has been used with respect to the last assignment,but additionall a state called as **SCANNING** has been added befre loading the map.
 
-- ![robot_monitor](https://user-images.githubusercontent.com/80621864/210334112-1a7d4831-0b80-4f6c-98f5-f2c6cbbe8c81.gif)
 
-The video shows how the robot is rotated when it reaches the room or an corridor,tis is done by publishing to the topic  **/cmd_vel** and provided an ngle to rotate.
+ ![robot_monitor](https://user-images.githubusercontent.com/80621864/210334112-1a7d4831-0b80-4f6c-98f5-f2c6cbbe8c81.gif)
+
+- The video shows how the robot is rotated when it reaches the room or an corridor,tis is done by publishing to the topic  **/cmd_vel** and provided an ngle to rotate.
 
 # 4.Installation and Running the project:
 ```
 $cd ros_ws/src/git clone https://github.com/Aathee1103/ExperimentalRoboticsAssignment2
 $cd ros_ws/ catkin_make to build the workspace.
-$roslaunch assignment2 mb2.launch where the launch file launches the gmappin,move_base and spawns the robot in the world.
+$roslaunch assignment2 mb2.launch where the launch file launches the gmapping,move_base packages and spawns the robot in the world.
 $open another tab and run the command rosrun aruco_ros marker_publisher /image:=/camera3/image_raw to run marker_publisher node.
 $rosrun smach_viewer smach_viewer.py to visualize the change in states.
 ```
 In the mb2.launch file assignment.launch,gmapping.launch,move_base.launch has been added.
 
 
-
-To start, you are provided with this package, which contains:
-- the definition of a custom message and a custom service
-- a simulation environment representing the "house" to be monitored
-- a node that implements a service: it requires the id (marker) detected by the robot and it replies with the information about the corresponding room (name of the room, coordinates of the center, connections with other rooms)
-- A launch file, which starts Gazebo with the simulation environment, and the service node (assignment.launch).
-
-You have to:
-- Add a robot to the environment;
-- Integrate (if needed, modify it) the architecture that you have developed in the first assignment to the given scenario.
-
-In particular, the robot will have to:
-- Be spawned in the initial position x = -6.0, y = 11.0
-- Build the "semantic" map of the environment by detecting, without moving the base of the robot, all seven markers that are present around it, by calling the provided service node. Try to "scan" the environment in a comprehensive way, possibly exploring different solutions related to the robot's model. 
-- Start the patrolling algorithm by relying on autonomous navigation strategies (mapping/planning) and on the information collected and stored in the ontology during the previous step.
-- When a room is reached, perform a complete scan of the room (by rotating the base or the camera).
 
 
