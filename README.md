@@ -29,7 +29,14 @@ The above image shows the changes between the states,sam set of states has been 
 The video shows how the robot is rotated when it reaches the room or an corridor,tis is done by publishing to the topic  **/cmd_vel** and provided an ngle to rotate.
 
 # 4.Installation and Running the project:
-- 
+```
+$cd ros_ws/src/git clone https://github.com/Aathee1103/ExperimentalRoboticsAssignment2
+$cd ros_ws/ catkin_make to build the workspace.
+$roslaunch assignment2 mb2.launch where the launch file launches the gmappin,move_base and spawns the robot in the world.
+$open another tab and run the command rosrun aruco_ros marker_publisher /image:=/camera3/image_raw to run marker_publisher node.
+$rosrun smach_viewer smach_viewer.py to visualize the change in states.
+```
+In the mb2.launch file assignment.launch,gmapping.launch,move_base.launch has been added.
 
 
 
