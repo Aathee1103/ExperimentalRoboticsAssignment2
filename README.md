@@ -52,7 +52,7 @@ In the mb2.launch file assignment.launch,gmapping.launch,move_base.launch has be
 
 # 5.Component Diagram:
 ![fsm assignment2](https://user-images.githubusercontent.com/80621864/210341200-f0c04c26-7fb4-4243-acde-884c3c4f2aaf.jpg)
-- The component diagram is quite similar to the frist same set of nodes have been used additional to the marker_publish and move_bas has been used for this practical simulation of this assignment.
+- The component diagram is quite similar to the first assignment, same set of nodes have been used additional to the **marker_publish** and **move_base** has been used for this practical simulation of this assignment.
 
 # 6.Limitations and Improements:
 - The robotic arm set up in the link chassis has been not provided wih correct parameters.so the arm will have a vibration to it.the Propotional,integrative and differential values mentioned in the motors_conig.yaml file is not accurate.so his vibration have to reduced to get smooth movement of the arm.
