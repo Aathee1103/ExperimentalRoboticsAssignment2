@@ -1,5 +1,3 @@
-#ExperimentalRoboticsAssignment2
-
 The Repository consists of packages required for the Assignment 2 of Experimental Robotics labarotary course.ths assignment is the continuation of the first assignment of this course which will be available in this link https://github.com/Aathee1103/ExperimentalRobotics-Assignment1-.The last assignment's goal was to develop an software architecture for the surveillance robot with the hep of ontolgy to know the location of the robot.Also,identify the external stimulus like an battery-low.the aim of this assignment is to develop an practical simuation of the ideas developed in the first assignment.In this assignment,initially there exists an world in gazebo developed by professor Carmine Recchiuto with aruco makers and rooms.
 
 # Aim of th Assigment:
