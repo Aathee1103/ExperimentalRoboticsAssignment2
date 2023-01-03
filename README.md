@@ -16,7 +16,7 @@ The Repository consists of packages required for the Assignment 2 of Experimenta
 The video shows how the robotic arm is used to scan the markers with the help of robotic arm.the robotic arm is rotated by publishing to the topic **/robot4/joint1_position_controller/command**(This command is for the joint 1,similary done for all other joints).the marker_server service is called to get the response where the detals of the rooms is provided where the marker id is the request provided.
 
 # 3.Working:
-
+overall_working.gif
 
 
 To start, you are provided with this package, which contains:
